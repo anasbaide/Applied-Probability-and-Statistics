@@ -1,0 +1,141 @@
+---
+title: "Four Year Maryland Colleges: Racial Diversity versus Tuition Cost Visualization"
+author: "Senay Alemayehu, Sofi Baide, Emma Krueger, Francisco Morales"
+output:
+ pdf_document:
+   toc: yes
+ html_document:
+   number_sections: yes
+   toc: yes 
+---
+
+# Project Introduction
+Diversity within education and its institutions has been a crucial topic for several years now, being discussed and critically analyzed as far back as the rise of affirmative action. At the University of Maryland, racial diversity is not only blatantly evident but is, in fact, soaring on campus. Our general inquiry is to see how other Maryland colleges compare in respect to diversity. Then, we want to determine if there is any correlation between racial diversity and the tuition cost at Maryland schools as financials can be an educational barrier to minorities. 
+
+# Data Introduction - Source and Links
+This notebook utilizes the 2014 Student Diversity Dataset and the 2018-2019 Tuition and Fees Cost both from the U.S. Department of Education. Both data sets can be found at https://www.kaggle.com/jessemostipak/college-tuition-diversity-and-pay. For access to the original sources of the data sets, the 2014 Student Diversity Dataset be found at
+https://www.chronicle.com/article/student-diversity-at-4-725-institutions/ ,and the 2018-2019 Tuition and Fees Cost at 
+https://www.chronicle.com/article/tuition-and-fees-1998-99-through-2018-19/. 
+
+
+# Packages
+```{r}
+library(dplyr)
+library(reshape)
+library(reshape2)
+library(data.table)
+```
+
+
+
+# Data Introduction
+
+The reader can expect the following elements from this notebook: 1) summary statistics of both the 2014 Student Diversity Dataset and the 2018-2019 Tuition and Fees Cost, 2) probability functions, expected values, and variances of both data sets along with the appropriate visualizations, 3) the covariance and correlation coefficient in respect to the two data sets along with the appropriate visualizations, 4) a summary of the relevant 
+conclusions.  
+
+
+```{r}
+diversity_path = '/Users/anabaide/Downloads/drive-download-20211127T224712Z-001/diversity_school.csv'
+tution_path = '/Users/anabaide/Downloads/drive-download-20211127T224712Z-001/tuition_cost.csv'
+```
+
+# Data Introduction - Research Question and Relevance
+The research question is as the following: what is the association between the racial minority percentages of four year colleges in Maryland versus their respective tuition costs? By exploring the correlations between racial diversity versus college tuition cost, this can open up policy opportunities for making four year colleges in Maryland more affordable and accessible
+to racial minorities.
+
+
+# Data Processing
+Since we are limiting our data to Maryland schools, lets filter other states out of each data frame.
+
+We can see from the bar graph that the tuition amounts change a lot depending on the school. The range goes from 3,825 to 5,3218. Through this we are able to see that there is no specific price in-state or out-of-state tuition. We will use this information to see if schools with higher tuition rates have less ratio of minorities. 
+
+```{r}
+diversity = read.csv(diversity_path)
+md_diversity = filter(diversity, state == 'Maryland')
+
+tuition = read.csv(tution_path)
+md_tuition = filter(tuition, state == 'Maryland')
+```
+
+# Data Exploration
+
+For the tuition table, let's focus only on in_state_tuition and out_of_state_tuition. Through the data and plot we can see the highest and lowest costs in tutition around Maryland institutions. 
+
+```{r}
+library(DT)
+md_tuition = select(md_tuition, name, in_state_tuition, out_of_state_tuition, type)
+datatable(md_tuition)
+
+in_tuition = c(unlist(select(md_tuition, out_of_state_tuition)))
+names = c(unlist(select(md_tuition, name)))
+my_data = data.frame(names, in_tuition)
+
+#labels horizontal
+library(ggplot2)
+p<-ggplot(data=my_data, aes(x=names, y=in_tuition)) + geom_point() + scale_y_continuous(limits = c(0, 40000))
+p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+out_tuition = c(unlist(select(md_tuition, out_of_state_tuition)))
+names = c(unlist(select(md_tuition, name)))
+my_data = data.frame(names, out_tuition)
+
+#labels horizontal
+library(ggplot2)
+p<-ggplot(data=my_data, aes(x=names, y=out_tuition)) + geom_point() + scale_y_continuous(limits = c(0, 40000))
+p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ 
+```
+
+
+In the diversity table, we can see that there are a variety of categories with respect to diversity. For this discussion, we can focus on women and racial minorities. Next, let's calculate the ratio of each diversity with respect to the total enrollment. We also calculated the total amount of minorities in each college and plot it in a visualization similar to tuition cost. 
+
+```{r}
+#women, simplify to just ednicity
+#sprintf(x, fmt = '%#.3f') 
+md_diversity = mutate(md_diversity, ratio = (enrollment / total_enrollment)*100) %>%
+    select(name, category, ratio)
+datatable(md_diversity)
+
+md_total_minorities = filter(md_diversity, category == "Total Minority")
+datatable(md_total_minorities)
+
+total_minorities = c(unlist(select(md_total_minorities, ratio)))
+names = c(unlist(select(md_total_minorities, name)))
+my_data = data.frame(names, total_minorities)
+
+p<-ggplot(data=my_data, aes(x=names, y=total_minorities)) + geom_point() + scale_y_continuous(limits = c(0, 40))
+p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+Finally, we can cast our table to have columns for each minorities ratio.
+
+```{r}
+
+md_diversity = dcast(setDT(md_diversity), name ~ category)
+datatable(md_diversity)
+```
+
+Then, we can merge our two tables to compare tution with different types of diversity.
+
+```{r}
+md_div_tuit <- merge(md_diversity, md_tuition, by="name")
+datatable(md_div_tuit)
+```
+
+# Conclusions
+
+By conducting data for minority percentages in both public and private 4 year colleges there is a conclusion that the cheaper institutions had relatively higher minority rates. The cheapest public school tuition was $6625 and had an 85% minority rate. The schools that attracted the most minority student rates had the lowest tuition. The highest public tuition of $14,806 had a low minority rate of 25% which is due to a more limited accessibility. There are other schools with similar minority rates that are not nearly as expensive too. But there is a correlation that the more expensive tuition is, the less minority students there are. It is more drastic as you go to private schools since tuition is spread out more. The institution with the highest minority rate at 76.2% also was the cheapest option at $23,900. Colleges $40,000 and up couldn’t get a minority rate higher than 30%, and 80% of that data was under the 23% minority rate. This proves that the tuition correlates to minority student rates. 
+
+# Future Work
+With more time and tools at the team’s disposal we would have accomplished the following: 1) See the costs of tuition in Maryland universities. 2)See the diversity in each school 3)Analyze the relationship between these two. In the future we would like to see the comparison in other schools and states. 
+
+
+
+**********************************************
+
+
+
+
+
